@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HarvestIQ — Tamil Nadu Agriculture & Market Intelligence</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React 18, ReactDOM, Babel for modern JSX execution -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Chart.js for smooth interactive charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            emerald: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              200: '#a7f3d0',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            },
+            earth: {
+              50: '#fdfbf7',
+              100: '#f7f2ea',
+              200: '#eadecb',
+              600: '#8c6b43',
+              700: '#735332',
+              800: '#5c4026',
+              900: '#422c19',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans Tamil', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    .badge-wait { background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .badge-sell { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .badge-neutral { background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // 5 Native Languages Dictionary
+    const translations = {
+      en: {
+        appName: "HarvestIQ",
+        tagline: "Tamil Nadu Agriculture & Market Intelligence",
+        tabFarmer: "Farmer Dashboard",
+        tabDistrict: "District / GovTech",
+        tabForecast: "Market Analytics",
+        langSelect: "Language",
+        onlineStatus: "Online (Live Agmarknet)",
+        offlineStatus: "Offline (Cached Data)",
+        voiceInput: "Speak in Tamil/English",
+        listening: "Listening...",
+        readAloud: "Read Aloud Summary",
+        sourceTag: "Source: Agmarknet, 21 Nov 2026",
+        trustDisclaimer: "Official Mandi & Agro-Met Ground Truth",
+        soilTitle: "Soil Analysis & Crop Matcher",
+        soilDesc: "Enter NPK & pH or fetch your official Soil Health Card to get top 3 verified crops.",
+        cardNumPlaceholder: "Enter Card No (e.g. TN-THJ-2026-8812)",
+        fetchCard: "Auto-Fill Card",
+        mockUpload: "Upload Soil Card PDF / Scan",
+        nLabel: "Nitrogen (N) kg/ha",
+        pLabel: "Phosphorus (P) kg/ha",
+        kLabel: "Potassium (K) kg/ha",
+        phLabel: "Soil pH Level",
+        acresLabel: "Land Size (Acres)",
+        matchButton: "Match Recommended Crops",
+        topMatches: "Top 3 Recommended Crops for Your Farm",
+        customizerTitle: "Cost & Profit Customizer",
+        customizerDesc: "Adjust yield and cost per acre to reflect your real farm budget:",
+        suitability: "Suitability",
+        estYield: "Est. Yield",
+        netProfit: "Projected Net Profit",
+        rotationTip: "Crop Rotation Tip",
+        whyThisCrop: "Why This Crop",
+        mandiTitle: "Live Mandi Price Tracker",
+        mandiDesc: "Daily mandi prices pulled directly from government Agmarknet open data portal.",
+        searchMandi: "Search crop, mandi or district...",
+        filterDistrict: "District",
+        filterCrop: "Crop",
+        decisionTitle: "Sell Now or Wait? (Decision Engine)",
+        decisionDesc: "Compares current mandi price with projected peak minus storage and interest loss.",
+        holdingCost: "Deductions (Godown fee + Interest loss)",
+        netGainPerQ: "Net Realized Difference",
+        bestMarketTitle: "Best Market to Sell At",
+        bestMarketDesc: "Calculates transport costs to nearby mandis to show your exact take-home cash.",
+        weatherTitle: "Weather & IMD Rainfall Alerts",
+        schemeTitle: "Government Schemes & Eligibility",
+        docChecklist: "Documents to Carry",
+        nearestOffice: "Nearest Agriculture Office / CSC",
+        govtechTitle: "Tamil Nadu District GovTech Intelligence",
+        govtechDesc: "Real-time monitoring of 38 districts: cropped area, grain procurement & godown overflow alerts.",
+        whatIfTitle: "What-If Scenario Simulator",
+        whatIfDesc: "Simulate impact on storage & budget if state procurement target changes:",
+        feedbackPrompt: "Was this recommendation useful?",
+        feedbackThanks: "Thank you for training the Tamil Nadu Agro-AI model!",
+        whatsappAlert: "Send WhatsApp / SMS Alert Demo",
+        listenDetails: "Listen Crop Audio Briefing"
+      },
+      ta: {
+        appName: "ஹார்வெஸ்ட் ஐகியூ (HarvestIQ)",
+        tagline: "தமிழ்நாடு விவசாயம் மற்றும் சந்தை நுண்ணறிவு தளம்",
+        tabFarmer: "விவசாயி டாஷ்போர்டு",
+        tabDistrict: "மாவட்ட / அரசு டாஷ்போர்டு",
+        tabForecast: "சந்தை விலை கணிப்பு",
+        langSelect: "மொழி",
+        onlineStatus: "நேரலை (அக்மார்க்நெட்)",
+        offlineStatus: "ஆஃப்லைன் (சேமிக்கப்பட்ட தகவல்)",
+        voiceInput: "தமிழில் பேசவும்",
+        listening: "கேட்கிறது...",
+        readAloud: "முக்கிய சுருக்கம் வாசி",
+        sourceTag: "ஆதாரம்: அக்மார்க்நெட், 21 நவம்பர் 2026",
+        trustDisclaimer: "அரசின் அதிகாரப்பூர்வ நேரடி சந்தை தரவு",
+        soilTitle: "மண் பரிசோதனை & பயிர் பொருத்தம்",
+        soilDesc: "NPK மற்றும் pH அளவுகளை உள்ளிடவும் அல்லது மண் வள அட்டையை இணைத்து சிறந்த 3 பயிர்களை அறியவும்.",
+        cardNumPlaceholder: "அட்டை எண் (எ.கா: TN-THJ-2026-8812)",
+        fetchCard: "அட்டை விவரம் பெறுக",
+        mockUpload: "மண் அட்டை PDF பதிவேற்றுக",
+        nLabel: "தழைச்சத்து (N) கிலோ/ஹெக்",
+        pLabel: "மணிச்சத்து (P) கிலோ/ஹெக்",
+        kLabel: "சாம்பல் சத்து (K) கிலோ/ஹெக்",
+        phLabel: "மண் கார அமிலத்தன்மை (pH)",
+        acresLabel: "நில அளவு (ஏக்கர்)",
+        matchButton: "பொருத்தமான பயிர்களை காண்க",
+        topMatches: "உங்கள் நிலத்திற்கான முதல் 3 சிறந்த பயிர்கள்",
+        customizerTitle: "செலவு & லாப மாற்றி",
+        customizerDesc: "உங்கள் உண்மை நிலைக்கு ஏற்ப மகசூல் மற்றும் செலவை மாற்றியமைக்கவும்:",
+        suitability: "பொருத்த நிலை",
+        estYield: "எதிர்பார்க்கும் மகசூல்",
+        netProfit: "நிகர லாபம்",
+        rotationTip: "பயிர் சுழற்சி ஆலோசனை",
+        whyThisCrop: "ஏன் இந்த பயிர்?",
+        mandiTitle: "நேரடி மண்டி விலை நிலவரம்",
+        mandiDesc: "அரசின் அக்மார்க்நெட் (Agmarknet) தளத்திலிருந்து பெறப்பட்ட நேரடி விலை நிலவரம்.",
+        searchMandi: "பயிர், மண்டி அல்லது மாவட்டம் தேடுக...",
+        filterDistrict: "மாவட்டம்",
+        filterCrop: "பயிர்",
+        decisionTitle: "இப்போதே விற்கலாமா? காத்திருக்கலாமா?",
+        decisionDesc: "இன்றைய விலையையும் சேமிப்புச் செலவு மற்றும் வட்டியை கழித்து உச்ச விலையையும் ஒப்பிடுகிறது.",
+        holdingCost: "பிடித்தங்கள் (கிடங்கு கட்டணம் + வட்டி)",
+        netGainPerQ: "நிகர கூடுதல் லாபம்/குவிண்டால்",
+        bestMarketTitle: "அதிக லாபம் தரும் சிறந்த சந்தை",
+        bestMarketDesc: "போக்குவரத்து செலவு போக கையில் கிடைக்கும் உண்மை தொகையை கணக்கிடுகிறது.",
+        weatherTitle: "வானிலை & IMD மழை எச்சரிக்கை",
+        schemeTitle: "அரசு மானியங்கள் & தகுதி சரிபார்ப்பு",
+        docChecklist: "எடுத்துச்செல்ல வேண்டிய ஆவணங்கள்",
+        nearestOffice: "அருகிலுள்ள வேளாண் விரிவாக்க மையம்",
+        govtechTitle: "38 மாவட்ட அரசு கொள்முதல் & கிடங்கு நிலை",
+        govtechDesc: "தானிய இருப்பு, உத்தேச உற்பத்தி மற்றும் கிடங்கு நிரம்பி வழியும் அபாய எச்சரிக்கை.",
+        whatIfTitle: "கொள்முதல் மாதிரி கணிப்பான்",
+        whatIfDesc: "அரசு கொள்முதல் இலக்கை உயர்த்தினால் தேவைப்படும் கூடுதல் சேமிப்பு கிடங்கு அளவு:",
+        feedbackPrompt: "இந்த பரிந்துரை பயனுள்ளதாக இருந்ததா?",
+        feedbackThanks: "நன்றி! உங்கள் கருத்து மாதிரிக்கு பயிற்சியளிக்க உதவும்.",
+        whatsappAlert: "வாட்ஸ்அப் / SMS எச்சரிக்கை டெமோ",
+        listenDetails: "முழு விவரம் கேட்க (ஆடியோ)"
+      },
+      te: {
+        appName: "హార్వెస్ట్ ఐక్యూ (HarvestIQ)",
+        tagline: "తమిళనాడు వ్యవసాయ & మార్కెట్ సమాచారం",
+        tabFarmer: "రైతు డాష్‌బోర్డ్",
+        tabDistrict: "జిల్లా / ప్రభుత్వ డాష్‌బోర్డ్",
+        tabForecast: "ధరల విశ్లేషణ",
+        langSelect: "భాష",
+        onlineStatus: "లైవ్ అగ్‌మార్క్‌నెట్",
+        offlineStatus: "ఆఫ్‌లైన్",
+        voiceInput: "వాయిస్ ఇన్‌పుట్",
+        listening: "వింటోంది...",
+        readAloud: "చదివి వినిపించు",
+        sourceTag: "మూలం: అగ్‌మార్క్‌నెట్, 21 నవంబర్ 2026",
+        trustDisclaimer: "ప్రభుత్వ అధికారిక డేటా",
+        soilTitle: "నేల విశ్లేషణ & పంట ఎంపిక",
+        soilDesc: "NPK మరియు pH నమోదు చేసి టాప్ 3 లాభదాయక పంటలను పొందండి.",
+        cardNumPlaceholder: "కార్డ్ నంబర్ (ఉదా: TN-THJ-2026-8812)",
+        fetchCard: "కార్డ్ వివరాలు తీసుకో",
+        mockUpload: "సాయిల్ కార్డ్ PDF అప్‌లోడ్",
+        nLabel: "నత్రజని (N)",
+        pLabel: "భాస్వరం (P)",
+        kLabel: "పొటాషియం (K)",
+        phLabel: "నేల pH",
+        acresLabel: "భూమి విస్తీర్ణం (ఎకరాలు)",
+        matchButton: "సిఫార్సు చేసిన పంటలను చూడండి",
+        topMatches: "మీ పొలానికి అత్యుత్తమ 3 పంటలు",
+        customizerTitle: "ఖర్చు & లాభాల సవరణ",
+        customizerDesc: "దిగుబడి మరియు ఖర్చులను మార్చి నిజమైన లాభం లెక్కించండి:",
+        suitability: "అనుకూలత",
+        estYield: "అంచనా దిగుబడి",
+        netProfit: "నికర లాభం",
+        rotationTip: "పంట మార్పిడి సలహా",
+        whyThisCrop: "ఎందుకు ఈ పంట?",
+        mandiTitle: "లైవ్ మార్కెట్ ధరలు",
+        mandiDesc: "అగ్‌మార్క్‌నెట్ ప్రభుత్వ డేటా ఆధారిత రోజువారీ ధరలు.",
+        searchMandi: "పంట లేదా మార్కెట్ వెతకండి...",
+        filterDistrict: "జిల్లా",
+        filterCrop: "పంట",
+        decisionTitle: "ఇప్పుడే అమ్మాలా? నిల్వ చేయాలా?",
+        decisionDesc: "గోదాము ఖర్చులు, వడ్డీ తీసివేసి నికర లాభాన్ని అంచనా వేస్తుంది.",
+        holdingCost: "నిల్వ & వడ్డీ ఖర్చు",
+        netGainPerQ: "నికర లాభ తేడా",
+        bestMarketTitle: "అత్యధిక ధర ఇచ్చే ఉత్తమ మార్కెట్",
+        bestMarketDesc: "రవాణా ఖర్చుల తర్వాత చేతికి వచ్చే మొత్తం లెక్కించండి.",
+        weatherTitle: "వాతావరణ హెచ్చరికలు",
+        schemeTitle: "ప్రభుత్వ పథకాలు & అర్హత",
+        docChecklist: "కావలసిన పత్రాలు",
+        nearestOffice: "సమీప వ్యవసాయ కార్యాలయం",
+        govtechTitle: "జిల్లా గోదాముల సామర్థ్య పర్యవేక్షణ",
+        govtechDesc: "38 జిల్లాల ధాన్యపు నిల్వ మరియు ఓవర్‌ఫ్లో అలర్ట్.",
+        whatIfTitle: "ప్రొక్యూర్‌మెంట్ సిమ్యులేటర్",
+        whatIfDesc: "కొనుగోలు పెంచితే అవసరమయ్యే అదనపు గోదాముల అంచనా:",
+        feedbackPrompt: "ఈ సమాచారం ఉపయోగపడిందా?",
+        feedbackThanks: "ధన్యవాదాలు!",
+        whatsappAlert: "వాట్సాప్ అలర్ట్ పంపండి",
+        listenDetails: "పూర్తి వివరాలు వినండి"
+      },
+      ml: {
+        appName: "ഹാർവെസ്റ്റ് ഐക്യൂ (HarvestIQ)",
+        tagline: "തമിഴ്നാട് കാർഷിക & മാർക്കറ്റ് ഇന്റലിജൻസ്",
+        tabFarmer: "കർഷക ഡാഷ്‌ബോർഡ്",
+        tabDistrict: "ജില്ലാ / ഗവൺമെന്റ് ഡാഷ്‌ബോർഡ്",
+        tabForecast: "വിപണി വില പ്രവചനം",
+        langSelect: "ഭാഷ",
+        onlineStatus: "ലൈവ് അഗ്മാർക്ക്നെറ്റ്",
+        offlineStatus: "ഓഫ്‌ലൈൻ",
+        voiceInput: "സംസാരിക്കുക",
+        listening: "കേൾക്കുന്നു...",
+        readAloud: "വായിച്ചു കേൾക്കുക",
+        sourceTag: "ഉറവിടം: അഗ്മാർക്ക്നെറ്റ്, 21 നവംബർ 2026",
+        trustDisclaimer: "ഔദ്യോഗിക സർക്കാർ വിപണി വിവരങ്ങൾ",
+        soilTitle: "മണ്ണ് പരിശോധനയും വിള തിരഞ്ഞെടുപ്പും",
+        soilDesc: "NPK, pH നൽകി ഏറ്റവും അനുയോജ്യമായ 3 വിളകൾ കണ്ടെത്തുക.",
+        cardNumPlaceholder: "കാർഡ് നമ്പർ (ഉദാ: TN-THJ-2026-8812)",
+        fetchCard: "കാർഡ് വിവരങ്ങൾ എടുക്കുക",
+        mockUpload: "സോയിൽ കാർഡ് PDF അപ്‌ലോഡ്",
+        nLabel: "നൈട്രജൻ (N)",
+        pLabel: "ഫോസ്ഫറസ് (P)",
+        kLabel: "പൊട്ടാസ്യം (K)",
+        phLabel: "മണ്ണ് pH",
+        acresLabel: "വിസ്തീർണം (ഏക്കർ)",
+        matchButton: "വിള ശുപാർശകൾ കാണുക",
+        topMatches: "നിങ്ങളുടെ കൃഷിയിടത്തിന് അനുയോജ്യമായ 3 വിളകൾ",
+        customizerTitle: "ചെലവ് & ലാഭം മാറ്റിയെഴുതുക",
+        customizerDesc: "യഥാർത്ഥ കണക്കുകൾ നൽകി ലാഭം പുനഃപരിശോധിക്കുക:",
+        suitability: "അനുയോജ്യത",
+        estYield: "പ്രതീക്ഷിക്കുന്ന വിളവ്",
+        netProfit: "അറ്റാദായം",
+        rotationTip: "വിള പരിക്രമണ നിർദ്ദേശം",
+        whyThisCrop: "എന്തുകൊണ്ട് ഈ വിള?",
+        mandiTitle: "തത്സമയ ചന്ത വിലവിവരം",
+        mandiDesc: "അഗ്മാർക്ക്നെറ്റിൽ നിന്നുള്ള കൃത്യമായ സർക്കാർ വില വിവരങ്ങൾ.",
+        searchMandi: "വിളയോ ചന്തയോ തിരയുക...",
+        filterDistrict: "ജില്ല",
+        filterCrop: "വിള",
+        decisionTitle: "ഇപ്പോൾ വിൽക്കണോ കാത്തിരിക്കണോ?",
+        decisionDesc: "ഗോഡൗൺ ഫീസും പലിശയും കഴിച്ച് ലഭിക്കുന്ന യഥാർത്ഥ ലാഭം.",
+        holdingCost: "ചെലവുകൾ (സംഭരണ ഫീസ് + പലിശ)",
+        netGainPerQ: "അധിക ലാഭം",
+        bestMarketTitle: "ഏറ്റവും മികച്ച ചന്ത കണ്ടെത്തുക",
+        bestMarketDesc: "യാത്രാക്കൂലി കഴിഞ്ഞ് കയ്യിൽ കിട്ടുന്ന തുക കണ്ടെത്തുക.",
+        weatherTitle: "കാലാവസ്ഥാ മുന്നറിയിപ്പുകൾ",
+        schemeTitle: "സർക്കാർ പദ്ധതികളും ആനുകൂല്യങ്ങളും",
+        docChecklist: "ആവശ്യമായ രേഖകൾ",
+        nearestOffice: "അടുത്തുള്ള കൃഷിഭവൻ / സി.എസ്.സി",
+        govtechTitle: "38 ജില്ലകളിലെ സംഭരണ ശേഷി നിരീക്ഷണം",
+        govtechDesc: "ഗോഡൗൺ കപ്പാസിറ്റിയും ഓവർഫ്ലോ അപകട സാധ്യത മുന്നറിയിപ്പും.",
+        whatIfTitle: "സംഭരണ സിമുലേറ്റർ",
+        whatIfDesc: "സംഭരണ തോത് ഉയർത്തുമ്പോൾ വേണ്ടിവരുന്ന അധിക ഗോഡൗൺ:",
+        feedbackPrompt: "ഈ നിർദ്ദേശം ഉപകാരപ്രദമായിരുന്നോ?",
+        feedbackThanks: "നന്ദി!",
+        whatsappAlert: "വാട്ട്‌സ്ആപ്പ് അറിയിപ്പ് ഡെമോ",
+        listenDetails: "വിശദാംശങ്ങൾ കേൾക്കുക"
+      },
+      kn: {
+        appName: "ಹಾರ್ವೆಸ್ಟ್ ಐಕ್ಯೂ (HarvestIQ)",
+        tagline: "ತಮಿಳುನಾಡು ಕೃಷಿ & ಮಾರುಕಟ್ಟೆ ಮಾಹಿತಿ",
+        tabFarmer: "ರೈತ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+        tabDistrict: "ಜಿಲ್ಲಾ / ಸರ್ಕಾರಿ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+        tabForecast: "ಮಾರುಕಟ್ಟೆ ದರ ಮುನ್ಸೂಚನೆ",
+        langSelect: "ಭಾಷೆ",
+        onlineStatus: "ಲೈವ್ ಅಗ್‌ಮಾರ್ಕ್‌ನೆಟ್",
+        offlineStatus: "ಆಫ್‌ಲೈನ್",
+        voiceInput: "ಧ್ವನಿ ಮೂಲಕ ಮಾತನಾಡಿ",
+        listening: "ಕೇಳಿಸಿಕೊಳ್ಳುತ್ತಿದೆ...",
+        readAloud: "ಓದಿ ಹೇಳಿ",
+        sourceTag: "ಮೂಲ: ಅಗ್‌ಮಾರ್ಕ್‌ನೆಟ್, 21 ನವೆಂಬರ್ 2026",
+        trustDisclaimer: "ಸರ್ಕಾರಿ ಅಧಿಕೃತ ಮಾರುಕಟ್ಟೆ ಮಾಹಿತಿ",
+        soilTitle: "ಮಣ್ಣು ಪರೀಕ್ಷೆ & ಬೆಳೆ ಹೊಂದಾಣಿಕೆ",
+        soilDesc: "NPK ಮತ್ತು pH ನಮೂದಿಸಿ ಟಾಪ್ 3 ಲಾಭದಾಯಕ ಬೆಳೆಗಳನ್ನು ಪಡೆಯಿರಿ.",
+        cardNumPlaceholder: "ಕಾರ್ಡ್ ಸಂಖ್ಯೆ (ಉದಾ: TN-THJ-2026-8812)",
+        fetchCard: "ಕಾರ್ಡ್ ವಿವರ ಪಡೆಯಿರಿ",
+        mockUpload: "ಸಾಯಿಲ್ ಕಾರ್ಡ್ PDF ಅಪ್‌ಲೋಡ್",
+        nLabel: "ಸಾರಜನಕ (N)",
+        pLabel: "ರಂಜಕ (P)",
+        kLabel: "ಪೊಟ್ಯಾಶ್ (K)",
+        phLabel: "ಮಣ್ಣಿನ pH",
+        acresLabel: "ಭೂಮಿ ವಿಸ್ತೀರ್ಣ (ಎಕರೆ)",
+        matchButton: "ಸೂಕ್ತ ಬೆಳೆಗಳನ್ನು ನೋಡಿ",
+        topMatches: "ನಿಮ್ಮ ಜಮೀನಿಗೆ ಅತ್ಯುತ್ತಮ 3 ಬೆಳೆಗಳು",
+        customizerTitle: "ವೆಚ್ಚ & ಲಾಭ ಹೊಂದಾಣಿಕೆ",
+        customizerDesc: "ನಿಖರ ಇಳುವರಿ ಮತ್ತು ವೆಚ್ಚ ನಮೂದಿಸಿ ಲಾಭ ಲೆಕ್ಕಹಾಕಿ:",
+        suitability: "ಹೊಂದಾಣಿಕೆ",
+        estYield: "ಅಂದಾಜು ಇಳುವರಿ",
+        netProfit: "ನಿವ್ವಳ ಲಾಭ",
+        rotationTip: "ಬೆಳೆ ಪರಿವರ್ತನೆ ಸಲಹೆ",
+        whyThisCrop: "ಏಕೆ ಈ ಬೆಳೆ?",
+        mandiTitle: "ಲೈವ್ ಮಂಡಿ ದರಗಳು",
+        mandiDesc: "ಅಗ್‌ಮಾರ್ಕ್‌ನೆಟ್ ಸರ್ಕಾರಿ ಪೋರ್ಟಲ್‌ನಿಂದ ನೇರ ದರಗಳು.",
+        searchMandi: "ಬೆಳೆ ಅಥವಾ ಮಾರುಕಟ್ಟೆ ಹುಡುಕಿ...",
+        filterDistrict: "ಜಿಲ್ಲೆ",
+        filterCrop: "ಬೆಳೆ",
+        decisionTitle: "ಈಗಲೇ ಮಾರಾಟ ಮಾಡಬೇಕೇ? ಕಾಯಬೇಕೇ?",
+        decisionDesc: "ಉಗ್ರಾಣ ಶುಲ್ಕ ಮತ್ತು ಬಡ್ಡಿ ಕಳೆದು ಸಿಗುವ ಲಾಭ ಲೆಕ್ಕಾಚಾರ.",
+        holdingCost: "ವೆಚ್ಚಗಳು (ಸಂಗ್ರಹಣೆ + ಬಡ್ಡಿ ನಷ್ಟ)",
+        netGainPerQ: "ನಿವ್ವಳ ವ್ಯತ್ಯಾಸ",
+        bestMarketTitle: "ಅತ್ಯುತ್ತಮ ಆದಾಯ ನೀಡುವ ಮಾರುಕಟ್ಟೆ",
+        bestMarketDesc: "ಸಾರಿಗೆ ವೆಚ್ಚದ ನಂತರ ಕೈಗೆ ಬರುವ ನಿಖರ ಹಣ ಲೆಕ್ಕಹಾಕಿ.",
+        weatherTitle: "ಹವಾಮಾನ ಮುನ್ಸೂಚನೆ & ಮಳೆ ಎಚ್ಚರಿಕೆ",
+        schemeTitle: "ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು & ಅರ್ಹತೆ",
+        docChecklist: "ತೆಗೆದುಕೊಂಡು ಹೋಗಬೇಕಾದ ದಾಖಲೆಗಳು",
+        nearestOffice: "ಹತ್ತಿರದ ಕೃಷಿ ವಿಸ್ತರಣಾ ಕೇಂದ್ರ",
+        govtechTitle: "38 ಜಿಲ್ಲೆಗಳ ಉಗ್ರಾಣ ಸಾಮರ್ಥ್ಯ ವೀಕ್ಷಣೆ",
+        govtechDesc: "ದಾಸ್ತಾನು ಮತ್ತು ಉಗ್ರಾಣ ಭರ್ತಿಯಾಗುವ ಮುನ್ಸೂಚನೆ.",
+        whatIfTitle: "ದಾಸ್ತಾನು ಸಿಮ್ಯುಲೇಟರ್",
+        whatIfDesc: "ಸರ್ಕಾರಿ ಖರೀದಿ ಹೆಚ್ಚಿಸಿದರೆ ಬೇಕಾಗುವ ಹೆಚ್ಚುವರಿ ಗೋದಾಮು:",
+        feedbackPrompt: "ಈ ಮಾಹಿತಿ ಉಪಯುಕ್ತವಾಗಿದೆಯೇ?",
+        feedbackThanks: "ಧನ್ಯವಾದಗಳು!",
+        whatsappAlert: "ವಾಟ್ಸಾಪ್ ಸಂದೇಶ ಡೆಮೊ",
+        listenDetails: "ಸಂಪೂರ್ಣ ವಿವರ ಆಲಿಸಿ"
+      }
+    };
+
+    function App() {
+      const [lang, setLang] = useState('en');
+      const [tab, setTab] = useState('farmer');
+      const t = translations[lang] || translations.en;
+
+      // Online status
+      const [isOnline, setIsOnline] = useState(navigator.onLine);
+      useEffect(() => {
+        const handleOn = () => setIsOnline(true);
+        const handleOff = () => setIsOnline(false);
+        window.addEventListener('online', handleOn);
+        window.addEventListener('offline', handleOff);
+        return () => {
+          window.removeEventListener('online', handleOn);
+          window.removeEventListener('offline', handleOff);
+        };
+      }, []);
+
+      // Voice recognition state
+      const [isListening, setIsListening] = useState(false);
+      const [voiceMsg, setVoiceMsg] = useState('');
+      const [currentlySpeaking, setCurrentlySpeaking] = useState(false);
+
+      const startVoiceRecognition = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          alert('Speech Recognition is not supported in this browser. You can type in the fields directly.');
+          return;
+        }
+        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRec();
+        recognition.lang = lang === 'ta' ? 'ta-IN' : (lang === 'te' ? 'te-IN' : (lang === 'ml' ? 'ml-IN' : (lang === 'kn' ? 'kn-IN' : 'en-IN')));
+        recognition.interimResults = false;
+        recognition.onstart = () => { setIsListening(true); setVoiceMsg(t.listening); };
+        recognition.onresult = (e) => {
+          const text = e.results[0][0].transcript;
+          setVoiceMsg(`Recognized: "${text}"`);
+          setIsListening(false);
+          if (text.toLowerCase().includes('thanjavur') || text.includes('தஞ்சாவூர்')) setFilterDistrict('Thanjavur');
+          if (text.toLowerCase().includes('erode') || text.includes('ஈரோடு')) setFilterDistrict('Erode');
+          if (text.toLowerCase().includes('madurai') || text.includes('மதுரை')) setFilterDistrict('Madurai');
+          if (text.toLowerCase().includes('rice') || text.includes('நெல்')) setFilterCrop('Rice');
+          if (text.toLowerCase().includes('groundnut') || text.includes('வேர்க்கடலை')) setFilterCrop('Groundnut');
+        };
+        recognition.onerror = () => { setIsListening(false); setVoiceMsg(''); };
+        recognition.onend = () => setIsListening(false);
+        recognition.start();
+      };
+
+      const stopSpeech = () => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          setCurrentlySpeaking(false);
+        }
+      };
+
+      const speakText = (text) => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = lang === 'ta' ? 'ta-IN' : (lang === 'te' ? 'te-IN' : (lang === 'ml' ? 'ml-IN' : (lang === 'kn' ? 'kn-IN' : 'en-IN')));
+          utterance.rate = 0.95;
+          utterance.onstart = () => setCurrentlySpeaking(true);
+          utterance.onend = () => setCurrentlySpeaking(false);
+          utterance.onerror = () => setCurrentlySpeaking(false);
+          window.speechSynthesis.speak(utterance);
+        }
+      };
+
+      // ----------------- DETAILED CROP AUDIO GENERATOR -----------------
+      // Speaks: Investment cost per acre, Expected profit, Perfect cultivation time/season, Best time to sell or hold, and Applicable government schemes!
+      const getCropAudioData = (crop, effYield, effCost, effProfit) => {
+        const cropKey = crop.crop_key || 'Rice';
+        const costPerAcre = Math.round(effCost / landAcres);
+        const profitPerAcre = Math.round(effProfit / landAcres);
+
+        const cropMeta = {
+          Rice: {
+            ta: {
+              season: "சம்பா மற்றும் தாளடி பருவம், ஆகஸ்ட் முதல் ஜனவரி வரை சாகுபடி செய்ய உகந்தது",
+              sellTiming: "இப்போதே விற்காமல் 2 மாதங்கள் கிடங்கில் சேமித்து வைத்து, தை பொங்கல் பண்டிகை உச்ச விலையான ஜனவரி அல்லது பிப்ரவரியில் விற்கவும்",
+              schemes: "பிரதம மந்திரி பயிர் காப்பீட்டு திட்டம் (PMFBY), பிஎம் ஆஷா ஆதார விலை திட்டம் மற்றும் தமிழக அரசின் குறுவை சிறப்பு தொகுப்பு திட்டம்"
+            },
+            en: {
+              season: "Samba and Thaladi season from August to January",
+              sellTiming: "Do not sell today. Hold stock for 2 months in a godown to capture the January Pongal festive peak price of ₹2,340 per quintal",
+              schemes: "PMFBY Crop Insurance, PM-AASHA MSP Procurement Guarantee, and Tamil Nadu Delta Cultivation Package"
+            },
+            te: {
+              season: "సాంబా మరియు తాళడి సీజన్",
+              sellTiming: "ఇప్పుడే అమ్మకండి, 2 నెలలు నిల్వ చేసి జనవరి సంక్రాంతి పీక్ ధర వద్ద విక్రయించండి",
+              schemes: "PMFBY పంటల బీమా మరియు PM-AASHA కనీస మద్దతు ధర పథకం"
+            },
+            ml: {
+              season: "സാംബ, തളടി സീസൺ",
+              sellTiming: "ഇപ്പോൾ വിൽക്കാതെ 2 മാസം കാത്തിരുന്ന് ജനുവരിയിലെ പൊങ്കൽ ഉയർന്ന വിലയിൽ വിൽക്കുക",
+              schemes: "PMFBY വിള ഇൻഷുറൻസ്, PM-AASHA താങ്ങുവില സംഭരണ പദ്ധതി"
+            },
+            kn: {
+              season: "ಸಾಂಬಾ ಮತ್ತು ತಳಡಿ ಬಿತ್ತನೆ ಋತು",
+              sellTiming: "ಈಗಲೇ ಮಾರಾಟ ಮಾಡಬೇಡಿ, ಜನವರಿ ಸಂಕ್ರಾಂತಿ ಗರಿಷ್ಠ ದರಕ್ಕಾಗಿ 2 ತಿಂಗಳು ದಾಸ್ತಾನು ಮಾಡಿ ಮಾರಾಟ ಮಾಡಿ",
+              schemes: "PMFBY ಬೆಳೆ ವಿಮೆ ಮತ್ತು PM-AASHA ಬೆಂಬಲ ಬೆಲೆ ಖರೀದಿ ಯೋಜನೆ"
+            }
+          },
+          Groundnut: {
+            ta: {
+              season: "சித்திரை பட்டம் மற்றும் மார்கழி முன்பட்டம்",
+              sellTiming: "பிப்ரவரி மாதத்தில் எண்ணெய் ஆலைகளின் கொள்முதல் உச்சத்தின் போது நல்ல விலைக்கு விற்க காத்திருக்கவும்",
+              schemes: "பிஎம் ஆஷா (PM-AASHA) எண்ணெய் வித்துக்கள் கொள்முதல் மற்றும் PMFBY பயிர் காப்பீட்டு திட்டம்"
+            },
+            en: {
+              season: "Chithirai and Rabi season from December to April",
+              sellTiming: "Wait to sell until the February oil mill procurement rush when prices rise to ₹8,600",
+              schemes: "PM-AASHA Oilseeds MSP Guarantee and PMFBY Crop Insurance"
+            },
+            te: {
+              season: "రబీ మరియు చిత్తిరై సీజన్",
+              sellTiming: "ఫిబ్రవరిలో నూనె మిల్లుల డిమాండ్ ఉన్నప్పుడు అమ్మండి",
+              schemes: "PM-AASHA మరియు PMFBY పథకాలు"
+            },
+            ml: {
+              season: "റാബി സീസൺ",
+              sellTiming: "ഫെബ്രുവരിയിലെ ഉയർന്ന എണ്ണ മിൽ ഡിമാൻഡിൽ വിൽക്കുക",
+              schemes: "PM-AASHA, PMFBY പദ്ധതികൾ"
+            },
+            kn: {
+              season: "ಹಿಂಗಾರು ಋತು",
+              sellTiming: "ಫೆಬ್ರವರಿ ತಿಂಗಳಲ್ಲಿ ಗರಿಷ್ಠ ದರಕ್ಕೆ ಮಾರಾಟ ಮಾಡಿ",
+              schemes: "PM-AASHA ಮತ್ತು PMFBY ಯೋಜನೆಗಳು"
+            }
+          },
+          Cotton: {
+            ta: {
+              season: "ஆடி பட்டம் மற்றும் தை பட்டம்",
+              sellTiming: "நூற்பாலைகளின் நேரடி கொள்முதல் உச்சமாகும் மார்ச் மாதத்தில் விற்க இருப்பு வைக்கவும்",
+              schemes: "இந்திய பருத்தி கழகத்தின் (CCI) ஆதார விலை திட்டம் மற்றும் PMFBY பயிர் காப்பீடு"
+            },
+            en: {
+              season: "Aadi and Thai season from August to February",
+              sellTiming: "Hold stock until March when spinning mill procurement reaches its seasonal peak",
+              schemes: "Cotton Corporation of India (CCI) MSP procurement and PMFBY Insurance"
+            },
+            te: {
+              season: "ఆడి సీజన్",
+              sellTiming: "మార్చి స్పిన్నింగ్ మిల్లుల కొనుగోలు సమయంలో అమ్మండి",
+              schemes: "CCI మద్దతు ధర మరియు PMFBY పథకం"
+            },
+            ml: {
+              season: "ആഡി സീസൺ",
+              sellTiming: "മാർച്ചിലെ നൂൽ മിൽ സംഭരണ വേളയിൽ വിൽക്കുക",
+              schemes: "CCI താങ്ങുവിലയും PMFBY ഇൻഷുറൻസും"
+            },
+            kn: {
+              season: "ಆಡಿ ಹಂಗಾಮು",
+              sellTiming: "ಮಾರ್ಚ್ ತಿಂಗಳಲ್ಲಿ ನೂಲಿನ ಗಿರಣಿಗಳ ಖರೀದಿ ಸಮಯದಲ್ಲಿ ಮಾರಾಟ ಮಾಡಿ",
+              schemes: "CCI ಬೆಂಬಲ ಬೆಲೆ ಮತ್ತು PMFBY ಯೋಜನೆ"
+            }
+          },
+          Sugarcane: {
+            ta: {
+              season: "ஆண்டு முழுமை சாகுபடி, 10 முதல் 12 மாத பயிர்",
+              sellTiming: "சர்க்கரை ஆலை வாசலில் உடனடியாக வெட்டி வழங்கி பணமாக்கவும், கிடங்கில் சேமிக்க வேண்டாம்",
+              schemes: "மத்திய அரசின் சர்க்கரை நியாய விலை (FRP) மற்றும் தமிழக அரசின் சிறப்பு ஊக்கத்தொகை திட்டம்"
+            },
+            en: {
+              season: "Perennial crop lasting 10 to 12 months",
+              sellTiming: "Supply directly to the sugar mill gate upon harvest, do not hold or store in godowns",
+              schemes: "Central Statutory FRP Price and Tamil Nadu State Cane Production Incentive"
+            },
+            te: {
+              season: "వార్షిక పంట (10-12 నెలలు)",
+              sellTiming: "కోత కోసిన వెంటనే ఫ్యాక్టరీకి తరలించండి, నిల్వ చేయవద్దు",
+              schemes: "కేంద్ర FRP మరియు తమిళనాడు రాష్ట్ర ప్రోత్సాహకం"
+            },
+            ml: {
+              season: "വാർഷിക വിള (10-12 മാസം)",
+              sellTiming: "വിളവെടുത്ത ഉടൻ ഷുഗർ മില്ലിലേക്ക് എത്തിക്കുക, സൂക്ഷിക്കരുത്",
+              schemes: "FRP താങ്ങുവിലയും തമിഴ്നാട് സർക്കാരിന്റെ ഇൻസെന്റീവും"
+            },
+            kn: {
+              season: "ವಾರ್ಷಿಕ ಬೆಳೆ (10-12 ತಿಂಗಳು)",
+              sellTiming: "ಕಟಾವಿನ ತಕ್ಷಣ ಸಕ್ಕರೆ ಕಾರ್ಖಾನೆಗೆ ಸರಬರಾಜು ಮಾಡಿ",
+              schemes: "ಕೇಂದ್ರ FRP ಮತ್ತು ತಮಿಳುನಾಡು ಸರ್ಕಾರದ ಪ್ರೋತ್ಸಾಹಧನ"
+            }
+          },
+          Turmeric: {
+            ta: {
+              season: "கார்த்திகை மற்றும் வைகாசி பட்டம்",
+              sellTiming: "அறுவடைக்கு பின் உலர்த்தி, ஏப்ரல் மற்றும் மே மாத விலை உச்சத்தின் போது விற்க காத்திருக்கவும்",
+              schemes: "தமிழக தோட்டக்கலை மிஷன் மற்றும் ஈரோடு மஞ்சள் சிறப்பு ஒழுங்குமுறை சந்தை பாதுகாப்பு திட்டம்"
+            },
+            en: {
+              season: "May to March long-duration turmeric season",
+              sellTiming: "Sun-dry post-harvest and wait to sell until April-May consolidation peak above ₹15,000",
+              schemes: "TN State Horticulture Mission and Erode Regulated Turmeric Market Scheme"
+            },
+            te: {
+              season: "దీర్ఘకాలిక పంట",
+              sellTiming: "ఏప్రిల్-మే నెలలలో గరిష్ట ధరకు అమ్మండి",
+              schemes: "ఉద్యానవన మిషన్ పథకం"
+            },
+            ml: {
+              season: "ദീർഘകാല വിള",
+              sellTiming: "ഏപ്രിൽ-മെയ് മാസങ്ങളിൽ വിൽക്കുക",
+              schemes: "ഹോർട്ടികൾച്ചർ മിഷൻ ആനുകൂല്യങ്ങൾ"
+            },
+            kn: {
+              season: "ದೀರ್ಘಾವಧಿ ಬೆಳೆ",
+              sellTiming: "ಏಪ್ರಿಲ್-ಮೇ ತಿಂಗಳಲ್ಲಿ ಗರಿಷ್ಠ ಬೆಲೆಗೆ ಮಾರಾಟ ಮಾಡಿ",
+              schemes: "ತೋಟಗಾರಿಕಾ ಮಿಷನ್ ಯೋಜನೆ"
+            }
+          },
+          "Black Gram": {
+            ta: {
+              season: "நெல் தரிசு மற்றும் கோடை பருவம், ஜனவரி முதல் ஏப்ரல் வரை",
+              sellTiming: "பிப்ரவரி மாதத்தில் உள்ளூர் ஒழுங்குமுறை விற்பனைக் கூடத்தில் தாமதமின்றி உடனே விற்கலாம்",
+              schemes: "தமிழக அரசின் பயறு வகை சிறப்பு இயக்கம் மற்றும் PM-AASHA ஆதார விலை கொள்முதல்"
+            },
+            en: {
+              season: "Rice fallow and summer pulse season from January to April",
+              sellTiming: "Ideal to sell during February at your nearest regulated market",
+              schemes: "Tamil Nadu Pulses Development Mission and PM-AASHA MSP Procurement"
+            },
+            te: {
+              season: "వరి తర్వాత పంట (జనవరి-ఏప్రిల్)",
+              sellTiming: "ఫిబ్రవరిలో స్థానిక మార్కెట్లో విక్రయించండి",
+              schemes: "పప్పుధాన్యాల అభివృద్ధి మిషన్ మరియు PM-AASHA"
+            },
+            ml: {
+              season: "നെല്ലിനു ശേഷമുള്ള വിള (ജനുവരി-ഏപ്രിൽ)",
+              sellTiming: "ഫെബ്രുവരിയിൽ പ്രാദേശിക ചന്തയിൽ വിൽക്കുക",
+              schemes: "പയറുവർഗ്ഗ വികസന മിഷൻ പദ്ധതി"
+            },
+            kn: {
+              season: "ಭತ್ತದ ನಂತರದ ಬೆಳೆ (ಜನವರಿ-ಏಪ್ರಿಲ್)",
+              sellTiming: "ಫೆಬ್ರವರಿ ತಿಂಗಳಲ್ಲಿ ಸ್ಥಳೀಯ ಮಂಡಿಯಲ್ಲಿ ಮಾರಾಟ ಮಾಡಿ",
+              schemes: "ಬೇಳೆಕಾಳು ಅಭಿವೃದ್ಧಿ ಮಿಷನ್ ಯೋಜನೆ"
+            }
+          }
+        };
+
+        const meta = cropMeta[cropKey] || cropMeta.Rice;
+        const localized = meta[lang] || meta.en;
+
+        if (lang === 'ta') {
+          return `பயிர் விவரம்: ${crop.crop}. முதலீட்டு செலவு: ஏக்கருக்கு ரூபாய் ${costPerAcre.toLocaleString()}. எதிர்பார்க்கும் நிகர லாபம்: ஏக்கருக்கு ரூபாய் ${profitPerAcre.toLocaleString()}, மொத்த லாபம் ரூபாய் ${effProfit.toLocaleString()}. சாகுபடிக்கு உகந்த காலம்: ${localized.season}. விற்பனை செய்ய உகந்த நேரம்: ${localized.sellTiming}. பொருந்தும் அரசு மானிய திட்டம்: ${localized.schemes}.`;
+        } else if (lang === 'te') {
+          return `పంట వివరాలు: ${crop.crop}. ఎకరానికి పెట్టుబడి ఖర్చు: రూపాయలు ${costPerAcre.toLocaleString()}. ఆశించిన నికర లాభం: ఎకరానికి రూపాయలు ${profitPerAcre.toLocaleString()}. సాగుకు సరైన కాలం: ${localized.season}. అమ్మకానికి అనువైన సమయం: ${localized.sellTiming}. వర్తించే ప్రభుత్వ పథకం: ${localized.schemes}.`;
+        } else if (lang === 'ml') {
+          return `വിള വിവരങ്ങൾ: ${crop.crop}. ഏക്കറിന് നിക്ഷേപ ചെലവ്: രൂപ ${costPerAcre.toLocaleString()}. പ്രതീക്ഷിക്കുന്ന അറ്റാദായം: ഏക്കറിന് രൂപ ${profitPerAcre.toLocaleString()}. കൃഷി ചെയ്യാൻ അനുയോജ്യമായ സമയം: ${localized.season}. വിൽക്കാൻ അനുയോജ്യമായ സമയം: ${localized.sellTiming}. ബാധകമായ സർക്കാർ പദ്ധതി: ${localized.schemes}.`;
+        } else if (lang === 'kn') {
+          return `ಬೆಳೆ ವಿವರ: ${crop.crop}. ಎಕರೆಗೆ ಬಂಡವಾಳ ವೆಚ್ಚ: ರೂಪಾಯಿ ${costPerAcre.toLocaleString()}. ನಿರೀಕ್ಷಿತ ನಿವ್ವಳ ಲಾಭ: ಎಕರೆಗೆ ರೂಪಾಯಿ ${profitPerAcre.toLocaleString()}. ಬೆಳೆ ಬೆಳೆಯಲು ಸೂಕ್ತ ಸಮಯ: ${localized.season}. ಮಾರಾಟ ಮಾಡಲು ಸೂಕ್ತ ಸಮಯ: ${localized.sellTiming}. ಅನ್ವಯವಾಗುವ ಸರ್ಕಾರಿ ಯೋಜನೆ: ${localized.schemes}.`;
+        } else {
+          return `Crop Listing Details: ${crop.crop}. Investment cost per acre: ₹${costPerAcre.toLocaleString()}. Expected net profit: ₹${profitPerAcre.toLocaleString()} per acre, with total net profit of ₹${effProfit.toLocaleString()}. Perfect cultivation season: ${localized.season}. Best time to sell or hold: ${localized.sellTiming}. Applicable Government Scheme: ${localized.schemes}.`;
+        }
+      };
+
+      // ----------------- SOIL ANALYSIS STATE -----------------
+      const [soilN, setSoilN] = useState(240);
+      const [soilP, setSoilP] = useState(18.5);
+      const [soilK, setSoilK] = useState(290);
+      const [soilPh, setSoilPh] = useState(6.8);
+      const [landAcres, setLandAcres] = useState(2.5);
+      const [cardInput, setCardInput] = useState('');
+      const [soilResult, setSoilResult] = useState(null);
+      const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+      // Customizer overrides for farmer edit
+      const [customYield, setCustomYield] = useState(null);
+      const [customCost, setCustomCost] = useState(null);
+
+      const handleAnalyzeSoil = async () => {
+        setIsAnalyzing(true);
+        try {
+          const res = await fetch('/api/soil-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nitrogen: Number(soilN),
+              phosphorus: Number(soilP),
+              potassium: Number(soilK),
+              ph: Number(soilPh),
+              land_acres: Number(landAcres)
+            })
+          });
+          const data = await res.json();
+          setSoilResult(data);
+          setCustomYield(null);
+          setCustomCost(null);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setIsAnalyzing(false);
+        }
+      };
+
+      const fetchCardDetails = async (cardNo) => {
+        const query = cardNo || cardInput;
+        if (!query) return;
+        try {
+          const res = await fetch(`/api/soil-health-card/${encodeURIComponent(query)}`);
+          const json = await res.json();
+          if (json.data) {
+            setSoilN(json.data.nitrogen);
+            setSoilP(json.data.phosphorus);
+            setSoilK(json.data.potassium);
+            setSoilPh(json.data.ph);
+            setCardInput(json.data.card_number);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      const mockUploadCard = async () => {
+        try {
+          const res = await fetch('/api/soil-health-card/upload-mock', { method: 'POST' });
+          const json = await res.json();
+          if (json.extracted_data) {
+            const d = json.extracted_data;
+            setSoilN(d.nitrogen);
+            setSoilP(d.phosphorus);
+            setSoilK(d.potassium);
+            setSoilPh(d.ph);
+            setCardInput(d.card_number);
+            alert(`Extracted Soil Health Card: ${d.card_number} (${d.farmer_name}, ${d.district})`);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      // ----------------- MANDI PRICES STATE -----------------
+      const [prices, setPrices] = useState([]);
+      const [mandiSearch, setMandiSearch] = useState('');
+      const [filterDistrict, setFilterDistrict] = useState('All');
+      const [filterCrop, setFilterCrop] = useState('All');
+
+      useEffect(() => {
+        fetch('/api/prices')
+          .then(res => res.json())
+          .then(d => {
+            if (d.data) setPrices(d.data);
+          })
+          .catch(e => console.error(e));
+      }, []);
+
+      const filteredPrices = useMemo(() => {
+        return prices.filter(p => {
+          const matchDist = filterDistrict === 'All' || p.district.toLowerCase() === filterDistrict.toLowerCase();
+          const matchCrop = filterCrop === 'All' || p.crop.toLowerCase() === filterCrop.toLowerCase();
+          const matchQ = !mandiSearch ||
+            p.crop.toLowerCase().includes(mandiSearch.toLowerCase()) ||
+            p.market_name.toLowerCase().includes(mandiSearch.toLowerCase()) ||
+            p.district.toLowerCase().includes(mandiSearch.toLowerCase()) ||
+            p.variety.toLowerCase().includes(mandiSearch.toLowerCase());
+          return matchDist && matchCrop && matchQ;
+        });
+      }, [prices, filterDistrict, filterCrop, mandiSearch]);
+
+      // ----------------- SELL NOW OR WAIT DECISION -----------------
+      const [decisionCrop, setDecisionCrop] = useState('Rice');
+      const [decisionPrice, setDecisionPrice] = useState(2180);
+      const [holdingMonths, setHoldingMonths] = useState(2);
+      const [decisionResult, setDecisionResult] = useState(null);
+
+      const evaluateDecision = async () => {
+        try {
+          const res = await fetch('/api/sell-decision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              crop: decisionCrop,
+              current_price: Number(decisionPrice),
+              holding_months: Number(holdingMonths)
+            })
+          });
+          const d = await res.json();
+          setDecisionResult(d);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      // ----------------- BEST MARKET STATE -----------------
+      const [bestMktDist, setBestMktDist] = useState('Thanjavur');
+      const [bestMktCrop, setBestMktCrop] = useState('Rice');
+      const [bestMktQty, setBestMktQty] = useState(50);
+      const [bestMktResult, setBestMktResult] = useState(null);
+
+      const evaluateBestMarket = async () => {
+        try {
+          const res = await fetch('/api/best-market', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              crop: bestMktCrop,
+              current_district: bestMktDist,
+              quantity_quintals: Number(bestMktQty),
+              transport_rate_per_km_quintal: 1.5
+            })
+          });
+          const d = await res.json();
+          setBestMktResult(d);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      // ----------------- WEATHER ADVISORY -----------------
+      const [weatherDist, setWeatherDist] = useState('Thanjavur');
+      const [weatherData, setWeatherData] = useState(null);
+
+      useEffect(() => {
+        fetch(`/api/weather/${weatherDist}`)
+          .then(res => res.json())
+          .then(d => setWeatherData(d.weather))
+          .catch(e => console.error(e));
+      }, [weatherDist]);
+
+      // ----------------- SCHEMES STATE -----------------
+      const [schemesData, setSchemesData] = useState(null);
+      useEffect(() => {
+        fetch(`/api/schemes?land_acres=${landAcres}&crop=Rice&district=Thanjavur`)
+          .then(res => res.json())
+          .then(d => setSchemesData(d))
+          .catch(e => console.error(e));
+      }, [landAcres]);
+
+      // ----------------- GOVTECH & SIMULATION STATE -----------------
+      const [govData, setGovData] = useState(null);
+      const [procureSlider, setProcureSlider] = useState(40);
+      const [simResult, setSimResult] = useState(null);
+      const [selectedGovZone, setSelectedGovZone] = useState('All');
+
+      useEffect(() => {
+        fetch('/api/govtech/overview')
+          .then(res => res.json())
+          .then(d => setGovData(d))
+          .catch(e => console.error(e));
+      }, []);
+
+      const runSimulation = (val) => {
+        setProcureSlider(val);
+        fetch(`/api/govtech/simulate?current_procurement_pct=25&new_procurement_pct=${val}`)
+          .then(res => res.json())
+          .then(d => setSimResult(d))
+          .catch(e => console.error(e));
+      };
+
+      // ----------------- FORECAST & CHART -----------------
+      const [forecastCrop, setForecastCrop] = useState('Rice');
+      const [forecastData, setForecastData] = useState(null);
+      const chartRef = useRef(null);
+      const chartInstanceRef = useRef(null);
+
+      useEffect(() => {
+        fetch(`/api/forecast/${forecastCrop}`)
+          .then(res => res.json())
+          .then(d => {
+            setForecastData(d);
+            renderChart(d.time_series);
+          })
+          .catch(e => console.error(e));
+      }, [forecastCrop]);
+
+      const renderChart = (series) => {
+        if (!series || !chartRef.current) return;
+        const labels = series.map(s => s.month);
+        const actuals = series.map(s => s.actual);
+        const preds = series.map(s => s.predicted);
+        const uppers = series.map(s => s.upper_bound);
+        const lowers = series.map(s => s.lower_bound);
+
+        if (chartInstanceRef.current) {
+          chartInstanceRef.current.destroy();
+        }
+
+        const ctx = chartRef.current.getContext('2d');
+        chartInstanceRef.current = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Actual Mandi Price (₹/q)',
+                data: actuals,
+                borderColor: '#059669',
+                backgroundColor: '#059669',
+                borderWidth: 3,
+                pointRadius: 5,
+                spanGaps: false
+              },
+              {
+                label: 'Forecast Model (Seasonal Peak ₹/q)',
+                data: preds,
+                borderColor: '#d97706',
+                borderDash: [6, 4],
+                backgroundColor: '#d97706',
+                borderWidth: 2,
+                pointRadius: 4
+              },
+              {
+                label: 'Upper Confidence (95%)',
+                data: uppers,
+                borderColor: 'rgba(217, 119, 6, 0.25)',
+                borderWidth: 1,
+                pointRadius: 0,
+                fill: '+1',
+                backgroundColor: 'rgba(251, 191, 36, 0.15)'
+              },
+              {
+                label: 'Lower Confidence (95%)',
+                data: lowers,
+                borderColor: 'rgba(217, 119, 6, 0.25)',
+                borderWidth: 1,
+                pointRadius: 0,
+                fill: false
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'top', labels: { font: { weight: '600' } } },
+              tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+              y: {
+                title: { display: true, text: 'Price in ₹ per Quintal' },
+                grid: { color: '#f1f5f9' }
+              },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      };
+
+      // ----------------- FEEDBACK -----------------
+      const [feedbackGiven, setFeedbackGiven] = useState(false);
+      const sendFeedback = async (isUseful) => {
+        try {
+          await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              recommendation_type: 'Soil and Mandi Engine',
+              useful: isUseful
+            })
+          });
+          setFeedbackGiven(true);
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
+      // Initial runs
+      useEffect(() => {
+        handleAnalyzeSoil();
+        evaluateDecision();
+        evaluateBestMarket();
+        runSimulation(40);
+      }, []);
+
+      return (
+        <div class="flex flex-col min-h-screen">
+          {/* HEADER / NAVIGATION */}
+          <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div class="flex justify-between items-center h-20">
+                {/* Brand */}
+                <div class="flex items-center space-x-3">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center text-white shadow-md shadow-emerald-200">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-2xl font-black text-slate-900 tracking-tight">{t.appName}</span>
+                      <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        TN AgriTech
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-500 font-medium">{t.tagline}</p>
+                  </div>
+                </div>
+
+                {/* Navigation Tabs */}
+                <div class="hidden md:flex space-x-2 bg-slate-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setTab('farmer')}
+                    class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'farmer' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    🌾 {t.tabFarmer}
+                  </button>
+                  <button
+                    onClick={() => setTab('district')}
+                    class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'district' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    🏛️ {t.tabDistrict}
+                  </button>
+                  <button
+                    onClick={() => setTab('forecast')}
+                    class={`px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'forecast' ? 'bg-white text-emerald-800 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    📈 {t.tabForecast}
+                  </button>
+                </div>
+
+                {/* Language Switcher & Live Status */}
+                <div class="flex items-center space-x-3">
+                  <div class="flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="hidden sm:inline">{isOnline ? t.onlineStatus : t.offlineStatus}</span>
+                  </div>
+
+                  <select
+                    value={lang}
+                    onChange={(e) => setLang(e.target.value)}
+                    class="bg-white border border-slate-300 text-slate-800 text-xs sm:text-sm font-bold rounded-lg px-2.5 py-2 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm cursor-pointer"
+                  >
+                    <option value="en">English</option>
+                    <option value="ta">தமிழ் (Tamil)</option>
+                    <option value="te">తెలుగు (Telugu)</option>
+                    <option value="ml">മലയാളം (Malayalam)</option>
+                    <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Mobile Tabs */}
+              <div class="flex md:hidden space-x-1 pb-3 overflow-x-auto">
+                <button
+                  onClick={() => setTab('farmer')}
+                  class={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold whitespace-nowrap ${tab === 'farmer' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-700'}`}
+                >
+                  🌾 {t.tabFarmer}
+                </button>
+                <button
+                  onClick={() => setTab('district')}
+                  class={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold whitespace-nowrap ${tab === 'district' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-700'}`}
+                >
+                  🏛️ {t.tabDistrict}
+                </button>
+                <button
+                  onClick={() => setTab('forecast')}
+                  class={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold whitespace-nowrap ${tab === 'forecast' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-700'}`}
+                >
+                  📈 {t.tabForecast}
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* MAIN CONTENT AREA */}
+          <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            
+            {/* Trust and Voice Toolbar */}
+            <div class="mb-6 bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 rounded-2xl p-4 text-white shadow-lg flex flex-col sm:flex-row justify-between items-center gap-3">
+              <div class="flex items-center space-x-3">
+                <span class="p-2 rounded-xl bg-white/10 backdrop-blur">
+                  <svg class="w-6 h-6 text-emerald-200" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </span>
+                <div>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-xs uppercase tracking-wider font-extrabold bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded">
+                      {t.sourceTag}
+                    </span>
+                    <span class="text-xs text-emerald-100 font-medium">{t.trustDisclaimer}</span>
+                  </div>
+                  <h2 class="text-sm font-semibold text-white/90">
+                    Kalaignar Centenary Agri-Market & Soil Decision Support System
+                  </h2>
+                </div>
+              </div>
+
+              {/* Voice Input & Master Read Aloud button */}
+              <div class="flex items-center space-x-2 w-full sm:w-auto">
+                <button
+                  onClick={startVoiceRecognition}
+                  class={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-white/15 hover:bg-white/25 text-white'}`}
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                  <span>{isListening ? t.listening : t.voiceInput}</span>
+                </button>
+
+                {currentlySpeaking ? (
+                  <button
+                    onClick={stopSpeech}
+                    class="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold transition shadow animate-pulse"
+                  >
+                    <span>⏹️ Stop Audio</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const topCrop = soilResult?.top_recommendations?.[0];
+                      if (topCrop) {
+                        const effYield = customYield !== null ? customYield : topCrop.total_yield_quintals;
+                        const effCost = customCost !== null ? customCost : topCrop.total_cost_rs;
+                        const effProfit = effYield * topCrop.market_rate_per_q - effCost;
+                        speakText(getCropAudioData(topCrop, effYield, effCost, effProfit));
+                      } else {
+                        speakText(lang === 'ta' ? 'மண் பரிசோதனை செய்து பயிர்களை தேர்ந்தெடுக்கவும்.' : 'Please calculate soil crop match first.');
+                      }
+                    }}
+                    class="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 text-xs font-bold transition shadow"
+                  >
+                    <span>🔊</span>
+                    <span>{t.readAloud}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {voiceMsg && (
+              <div class="mb-4 p-2 bg-emerald-100 text-emerald-900 text-xs rounded-lg font-semibold flex items-center justify-between">
+                <span>{voiceMsg}</span>
+                <button onClick={() => setVoiceMsg('')} class="text-emerald-700 font-bold">✕</button>
+              </div>
+            )}
+
+            {/* TAB 1: FARMER DASHBOARD */}
+            {tab === 'farmer' && (
+              <div class="space-y-8">
+                
+                {/* 1. SOIL ANALYSIS & CROP MATCHER */}
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                  <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
+                    <div>
+                      <h3 class="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                        <span>🧪</span>
+                        <span>{t.soilTitle}</span>
+                      </h3>
+                      <p class="text-xs text-slate-500 mt-1">{t.soilDesc}</p>
+                    </div>
+
+                    {/* Quick Card Fill buttons */}
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => fetchCardDetails('TN-THJ-2026-8812')}
+                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                      >
+                        🌾 Thanjavur Card
+                      </button>
+                      <button
+                        onClick={() => fetchCardDetails('TN-ERD-2026-4401')}
+                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
+                      >
+                        🥜 Erode Card
+                      </button>
+                      <button
+                        onClick={mockUploadCard}
+                        class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-800 text-white hover:bg-slate-700 flex items-center space-x-1"
+                      >
+                        <span>📄</span>
+                        <span>{t.mockUpload}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Soil Input Form */}
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                    <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">{t.nLabel}</label>
+                      <input
+                        type="number"
+                        value={soilN}
+                        onChange={(e) => setSoilN(e.target.value)}
+                        class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                      <span class="text-[10px] text-slate-400">Normal: 180 - 280 kg/ha</span>
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">{t.pLabel}</label>
+                      <input
+                        type="number"
+                        value={soilP}
+                        onChange={(e) => setSoilP(e.target.value)}
+                        class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                      <span class="text-[10px] text-slate-400">Normal: 16 - 26 kg/ha</span>
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">{t.kLabel}</label>
+                      <input
+                        type="number"
+                        value={soilK}
+                        onChange={(e) => setSoilK(e.target.value)}
+                        class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                      <span class="text-[10px] text-slate-400">Normal: 200 - 320 kg/ha</span>
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">{t.phLabel}</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={soilPh}
+                        onChange={(e) => setSoilPh(e.target.value)}
+                        class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                      <span class="text-[10px] text-slate-400">Ideal: 6.5 - 7.5 (Neutral)</span>
+                    </div>
+
+                    <div>
+                      <label class="block text-xs font-bold text-slate-700 mb-1">{t.acresLabel}</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={landAcres}
+                        onChange={(e) => setLandAcres(e.target.value)}
+                        class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                      <span class="text-[10px] text-slate-400">Default: 2.5 Acres</span>
+                    </div>
+                  </div>
+
+                  <div class="flex justify-end mb-6">
+                    <button
+                      onClick={handleAnalyzeSoil}
+                      disabled={isAnalyzing}
+                      class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition flex items-center space-x-2"
+                    >
+                      <span>{isAnalyzing ? 'Analyzing...' : t.matchButton}</span>
+                      <span>➔</span>
+                    </button>
+                  </div>
+
+                  {/* Top 3 Crop Matches */}
+                  {soilResult?.top_recommendations && (
+                    <div>
+                      <h4 class="text-sm font-bold uppercase tracking-wider text-slate-600 mb-4 flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span>{t.topMatches}</span>
+                      </h4>
+
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {soilResult.top_recommendations.map((crop, idx) => {
+                          const effYield = customYield !== null && idx === 0 ? customYield : crop.total_yield_quintals;
+                          const effCost = customCost !== null && idx === 0 ? customCost : crop.total_cost_rs;
+                          const effGross = effYield * crop.market_rate_per_q;
+                          const effProfit = effGross - effCost;
+                          const costPerAcre = Math.round(effCost / landAcres);
+                          const profitPerAcre = Math.round(effProfit / landAcres);
+
+                          return (
+                            <div key={idx} class="bg-gradient-to-b from-white to-slate-50/50 rounded-2xl border-2 border-emerald-500/20 hover:border-emerald-500 p-5 shadow-sm transition hover:shadow-md relative flex flex-col justify-between">
+                              <div>
+                                <div class="flex justify-between items-start mb-3">
+                                  <span class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800">
+                                    #{idx + 1} Best Match
+                                  </span>
+                                  <span class="text-sm font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+                                    {crop.match_score}% {t.suitability}
+                                  </span>
+                                </div>
+
+                                <h5 class="text-lg font-black text-slate-900 mb-1">{crop.crop}</h5>
+                                <p class="text-xs text-slate-500 mb-3 font-medium">Mandi Market Rate: ₹{crop.market_rate_per_q}/q</p>
+
+                                {/* Detailed Key Parameters */}
+                                <div class="bg-white rounded-xl p-3 border border-slate-100 space-y-2 mb-3">
+                                  <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500 font-semibold">💼 Investment Cost / Acre:</span>
+                                    <span class="font-bold text-slate-800">₹{costPerAcre.toLocaleString()}</span>
+                                  </div>
+                                  <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500 font-semibold">{t.estYield}:</span>
+                                    <span class="font-bold text-slate-800">{effYield} Quintals ({landAcres} ac)</span>
+                                  </div>
+                                  <div class="flex justify-between text-xs pt-1 border-t border-slate-100">
+                                    <span class="font-bold text-slate-700">💰 Profit / Acre:</span>
+                                    <span class="font-black text-emerald-700 text-sm">₹{profitPerAcre.toLocaleString()}</span>
+                                  </div>
+                                  <div class="flex justify-between text-xs text-emerald-800 font-bold">
+                                    <span>Total Net Profit ({landAcres} ac):</span>
+                                    <span>₹{effProfit.toLocaleString()}</span>
+                                  </div>
+                                </div>
+
+                                {/* Crop Season & Perfect Time to Sell */}
+                                <div class="space-y-1.5 mb-3 text-[11px]">
+                                  <div class="bg-amber-50/80 p-2 rounded-lg border border-amber-200 text-amber-900">
+                                    <span class="font-black block mb-0.5">📅 Perfect Cultivation Season:</span>
+                                    <span>{crop.season}</span>
+                                  </div>
+                                  <div class="bg-blue-50/80 p-2 rounded-lg border border-blue-200 text-blue-900">
+                                    <span class="font-black block mb-0.5">⏰ Perfect Time to Sell:</span>
+                                    <span>{crop.crop_key === 'Rice' ? 'Hold 2 months for January Pongal peak (₹2,340/q)' : (crop.crop_key === 'Groundnut' ? 'Wait until February oil mill peak (₹8,620/q)' : (crop.crop_key === 'Sugarcane' ? 'Supply immediately to mill gate' : 'Wait for peak post-harvest market window'))}</span>
+                                  </div>
+                                  <div class="bg-purple-50/80 p-2 rounded-lg border border-purple-200 text-purple-900">
+                                    <span class="font-black block mb-0.5">🏛️ Applicable Scheme:</span>
+                                    <span>{crop.crop_key === 'Rice' ? 'PMFBY Crop Insurance & PM-AASHA MSP' : (crop.crop_key === 'Groundnut' ? 'PM-AASHA Oilseeds & PMFBY' : 'PMFBY & TN State Mission')}</span>
+                                  </div>
+                                </div>
+
+                                <div class="text-[11px] text-slate-600 bg-emerald-50/60 p-2.5 rounded-lg border border-emerald-100 mb-3">
+                                  <span class="font-bold text-emerald-900 block mb-0.5">{t.whyThisCrop}:</span>
+                                  {crop.why}
+                                </div>
+
+                                <div class="text-[11px] text-amber-800 bg-amber-50/70 p-2.5 rounded-lg border border-amber-200">
+                                  <span class="font-bold block mb-0.5">🔄 {t.rotationTip}:</span>
+                                  {crop.rotation_advice}
+                                </div>
+                              </div>
+
+                              {/* SEPARATE SOUND READALOUD BUTTON FOR THIS LISTING */}
+                              <button
+                                onClick={() => speakText(getCropAudioData(crop, effYield, effCost, effProfit))}
+                                class="w-full mt-4 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs flex items-center justify-center space-x-2 shadow-sm transition hover:shadow cursor-pointer"
+                                title="Listen Investment Cost, Profit, Sowing Season, Perfect Time to Sell, and Applicable Scheme"
+                              >
+                                <span class="text-base">🔊</span>
+                                <span>{t.listenDetails}</span>
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Cost and Profit Customizer */}
+                      <div class="mt-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3">
+                          <div>
+                            <h5 class="text-xs font-bold uppercase tracking-wider text-slate-700">✏️ {t.customizerTitle}</h5>
+                            <p class="text-[11px] text-slate-500">{t.customizerDesc}</p>
+                          </div>
+                          <button
+                            onClick={() => { setCustomYield(null); setCustomCost(null); }}
+                            class="text-xs text-emerald-700 font-bold hover:underline mt-1 sm:mt-0"
+                          >
+                            Reset Defaults
+                          </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Your Assumed Total Yield (Quintals):</label>
+                            <input
+                              type="number"
+                              placeholder={soilResult.top_recommendations[0]?.total_yield_quintals}
+                              onChange={(e) => setCustomYield(e.target.value ? Number(e.target.value) : null)}
+                              class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Your Total Input Cost (₹):</label>
+                            <input
+                              type="number"
+                              placeholder={soilResult.top_recommendations[0]?.total_cost_rs}
+                              onChange={(e) => setCustomCost(e.target.value ? Number(e.target.value) : null)}
+                              class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. SELL NOW OR WAIT DECISION & BEST MARKET (GRID) */}
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  
+                  {/* SELL NOW OR WAIT */}
+                  <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                          <span class="text-xl">⚖️</span>
+                          <h3 class="text-lg font-bold text-slate-900">{t.decisionTitle}</h3>
+                        </div>
+                        {decisionResult && (
+                          <button
+                            onClick={() => {
+                              const speech = lang === 'ta' 
+                                ? `விற்பனை ஆலோசனை: ${decisionCrop} பயிர். ${decisionResult.action_recommendation}. இன்றைய விலை குவிண்டாலுக்கு ₹${decisionResult.current_price}. உத்தேச உச்ச விலை ₹${decisionResult.projected_peak_price}. பிடித்தங்கள் ₹${decisionResult.costs.total_deductions}. நிகர லாப வித்தியாசம் ₹${decisionResult.net_gain_loss_per_quintal}. ${decisionResult.plain_verdict}`
+                                : `Market Decision: For ${decisionCrop}. ${decisionResult.action_recommendation}. Current price is ₹${decisionResult.current_price} per quintal. Projected peak is ₹${decisionResult.projected_peak_price}. Storage and interest cost is ₹${decisionResult.costs.total_deductions}. Net gain is ₹${decisionResult.net_gain_loss_per_quintal}. ${decisionResult.plain_verdict}`;
+                              speakText(speech);
+                            }}
+                            class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center space-x-1 border border-emerald-200"
+                            title="Listen Sell Decision Audio"
+                          >
+                            <span>🔊 Audio</span>
+                          </button>
+                        )}
+                      </div>
+                      <p class="text-xs text-slate-500 mb-4">{t.decisionDesc}</p>
+
+                      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">Select Crop</label>
+                          <select
+                            value={decisionCrop}
+                            onChange={(e) => setDecisionCrop(e.target.value)}
+                            class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                          >
+                            <option value="Rice">Rice (Paddy)</option>
+                            <option value="Groundnut">Groundnut</option>
+                            <option value="Cotton">Cotton</option>
+                            <option value="Turmeric">Turmeric</option>
+                            <option value="Sugarcane">Sugarcane</option>
+                            <option value="Small Onion">Small Onion</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">Today's Price (₹/q)</label>
+                          <input
+                            type="number"
+                            value={decisionPrice}
+                            onChange={(e) => setDecisionPrice(e.target.value)}
+                            class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                          />
+                        </div>
+
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">Hold Duration</label>
+                          <select
+                            value={holdingMonths}
+                            onChange={(e) => setHoldingMonths(e.target.value)}
+                            class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                          >
+                            <option value="1">1 Month</option>
+                            <option value="2">2 Months (Peak)</option>
+                            <option value="3">3 Months</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={evaluateDecision}
+                        class="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow mb-4"
+                      >
+                        Calculate Decision Verdict
+                      </button>
+
+                      {decisionResult && (
+                        <div class="space-y-3">
+                          <div class={`p-4 rounded-xl border font-bold text-sm ${decisionResult.badge_class}`}>
+                            <div class="flex items-center space-x-2 mb-1">
+                              <span class="text-base font-black uppercase tracking-wide">
+                                🔔 {decisionResult.action_recommendation}
+                              </span>
+                            </div>
+                            <p class="text-xs font-medium leading-relaxed">{decisionResult.plain_verdict}</p>
+                          </div>
+
+                          <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1.5">
+                            <div class="flex justify-between">
+                              <span class="text-slate-500">Projected Seasonal Peak:</span>
+                              <span class="font-bold text-slate-800">₹{decisionResult.projected_peak_price}/q ({decisionResult.projected_peak_time})</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-slate-500">Gross Price Rise:</span>
+                              <span class="font-bold text-emerald-700">+₹{decisionResult.gross_price_increase}/q</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-slate-500">{t.holdingCost}:</span>
+                              <span class="font-semibold text-rose-700">-₹{decisionResult.costs.total_deductions}/q</span>
+                            </div>
+                            <div class="flex justify-between pt-1 border-t border-slate-200">
+                              <span class="font-bold text-slate-700">{t.netGainPerQ}:</span>
+                              <span class="font-black text-slate-900">₹{decisionResult.net_gain_loss_per_quintal}/q</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400">
+                      <span>{decisionResult?.historical_reliability || '89% seasonal reliability'}</span>
+                      <button
+                        onClick={() => alert(`WhatsApp Alert Sent: "${decisionCrop} price projected peak at ₹${decisionResult?.projected_peak_price}/q. Recommended: ${decisionResult?.action_recommendation}"`)}
+                        class="text-emerald-700 font-bold hover:underline flex items-center space-x-1"
+                      >
+                        <span>📱</span>
+                        <span>{t.whatsappAlert}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* BEST MARKET TO SELL AT */}
+                  <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-2">
+                          <span class="text-xl">🚚</span>
+                          <h3 class="text-lg font-bold text-slate-900">{t.bestMarketTitle}</h3>
+                        </div>
+                        {bestMktResult && (
+                          <button
+                            onClick={() => {
+                              const best = bestMktResult.best_pick;
+                              const speech = lang === 'ta'
+                                ? `சிறந்த சந்தை முடிவு: ${best.verdict}`
+                                : `Best market recommendation: ${best.verdict}`;
+                              speakText(speech);
+                            }}
+                            class="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center space-x-1 border border-emerald-200"
+                            title="Listen Best Market Audio"
+                          >
+                            <span>🔊 Audio</span>
+                          </button>
+                        )}
+                      </div>
+                      <p class="text-xs text-slate-500 mb-4">{t.bestMarketDesc}</p>
+
+                      <div class="grid grid-cols-3 gap-3 mb-4">
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">Your District</label>
+                          <select
+                            value={bestMktDist}
+                            onChange={(e) => setBestMktDist(e.target.value)}
+                            class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                          >
+                            <option value="Thanjavur">Thanjavur</option>
+                            <option value="Erode">Erode</option>
+                            <option value="Madurai">Madurai</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">Crop</label>
+                          <select
+                            value={bestMktCrop}
+                            onChange={(e) => setBestMktCrop(e.target.value)}
+                            class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                          >
+                            <option value="Rice">Rice</option>
+                            <option value="Groundnut">Groundnut</option>
+                            <option value="Cotton">Cotton</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold text-slate-700 mb-1">Lot (Quintals)</label>
+                          <input
+                            type="number"
+                            value={bestMktQty}
+                            onChange={(e) => setBestMktQty(e.target.value)}
+                            class="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={evaluateBestMarket}
+                        class="w-full py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow mb-4"
+                      >
+                        Rank Nearby Mandis
+                      </button>
+
+                      {bestMktResult && (
+                        <div class="space-y-3">
+                          <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 font-bold">
+                            🏆 {bestMktResult.best_pick.verdict}
+                          </div>
+
+                          <div class="space-y-2 max-h-52 overflow-y-auto pr-1">
+                            {bestMktResult.ranked_markets.map((m, idx) => (
+                              <div key={idx} class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center text-xs">
+                                <div>
+                                  <div class="font-bold text-slate-800">{m.market_name} ({m.distance_km} km)</div>
+                                  <div class="text-[10px] text-slate-500">Mandi Price: ₹{m.quoted_price_per_q}/q | Freight: ₹{m.transport_cost_total}</div>
+                                </div>
+                                <div class="text-right">
+                                  <div class="font-black text-emerald-800 text-sm">₹{m.net_take_home_total.toLocaleString()}</div>
+                                  <div class="text-[10px] text-slate-500 font-semibold">₹{m.net_rate_per_q}/q net</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400">
+                      Standard Tamil Nadu Agri freight index: ₹1.50 per quintal per km.
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. LIVE MANDI PRICE TRACKER TABLE */}
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                  <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
+                    <div>
+                      <h3 class="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                        <span>📊</span>
+                        <span>{t.mandiTitle}</span>
+                      </h3>
+                      <p class="text-xs text-slate-500 mt-1">{t.mandiDesc}</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder={t.searchMandi}
+                        value={mandiSearch}
+                        onChange={(e) => setMandiSearch(e.target.value)}
+                        class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                      <select
+                        value={filterDistrict}
+                        onChange={(e) => setFilterDistrict(e.target.value)}
+                        class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                      >
+                        <option value="All">All Districts</option>
+                        <option value="Thanjavur">Thanjavur</option>
+                        <option value="Erode">Erode</option>
+                        <option value="Madurai">Madurai</option>
+                        <option value="Salem">Salem</option>
+                        <option value="Coimbatore">Coimbatore</option>
+                        <option value="Tiruchirappalli">Tiruchirappalli</option>
+                        <option value="Cuddalore">Cuddalore</option>
+                        <option value="Dindigul">Dindigul</option>
+                      </select>
+
+                      <select
+                        value={filterCrop}
+                        onChange={(e) => setFilterCrop(e.target.value)}
+                        class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                      >
+                        <option value="All">All Crops</option>
+                        <option value="Rice">Rice</option>
+                        <option value="Groundnut">Groundnut</option>
+                        <option value="Cotton">Cotton</option>
+                        <option value="Sugarcane">Sugarcane</option>
+                        <option value="Turmeric">Turmeric</option>
+                        <option value="Maize">Maize</option>
+                        <option value="Small Onion">Small Onion</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="min-w-full divide-y divide-slate-200 text-left text-xs">
+                      <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider">
+                        <tr>
+                          <th class="px-4 py-3">Crop & Variety</th>
+                          <th class="px-4 py-3">District</th>
+                          <th class="px-4 py-3">Regulated Mandi</th>
+                          <th class="px-4 py-3 text-right">Modal Price (₹/q)</th>
+                          <th class="px-4 py-3 text-right">Min - Max (₹/q)</th>
+                          <th class="px-4 py-3 text-right">Daily Arrival (MT)</th>
+                          <th class="px-4 py-3 text-center">Date & Source</th>
+                          <th class="px-4 py-3 text-center">Audio</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-slate-100 bg-white">
+                        {filteredPrices.map((row, idx) => (
+                          <tr key={idx} class="hover:bg-slate-50/80 transition">
+                            <td class="px-4 py-3">
+                              <span class="font-extrabold text-slate-900 block">{row.crop}</span>
+                              <span class="text-[11px] text-slate-500 font-medium">{row.variety}</span>
+                            </td>
+                            <td class="px-4 py-3 font-semibold text-slate-700">{row.district}</td>
+                            <td class="px-4 py-3 text-slate-600 font-medium">{row.market_name}</td>
+                            <td class="px-4 py-3 text-right font-black text-emerald-700 text-sm">
+                              ₹{row.modal_price.toLocaleString()}
+                            </td>
+                            <td class="px-4 py-3 text-right text-slate-600">
+                              ₹{row.min_price} - ₹{row.max_price}
+                            </td>
+                            <td class="px-4 py-3 text-right font-semibold text-slate-800">
+                              {row.arrival_tonnes} MT
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                              <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                                {row.date} (Agmarknet)
+                              </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                              <button
+                                onClick={() => {
+                                  const text = lang === 'ta'
+                                    ? `${row.district} மாவட்டத்தில், ${row.market_name} சந்தையில், ${row.crop} ${row.variety} மாதிரி விலை குவிண்டாலுக்கு ரூபாய் ${row.modal_price}.`
+                                    : `In ${row.district} district at ${row.market_name}, ${row.crop} ${row.variety} modal price is ₹${row.modal_price} per quintal.`;
+                                  speakText(text);
+                                }}
+                                class="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold"
+                                title="Listen to this price"
+                              >
+                                🔊
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 4. WEATHER & SCHEMES CHECKER */}
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  
+                  {/* WEATHER ADVISORY */}
+                  <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-2">
+                          <span class="text-xl">🌦️</span>
+                          <h3 class="text-lg font-bold text-slate-900">{t.weatherTitle}</h3>
+                        </div>
+                        <select
+                          value={weatherDist}
+                          onChange={(e) => setWeatherDist(e.target.value)}
+                          class="px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-bold"
+                        >
+                          <option value="Thanjavur">Thanjavur (Delta)</option>
+                          <option value="Erode">Erode (Western)</option>
+                          <option value="Madurai">Madurai (Southern)</option>
+                        </select>
+                      </div>
+
+                      {weatherData && (
+                        <div class="space-y-4">
+                          <div class="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                            <div>
+                              <div class="text-2xl font-black text-slate-900">{weatherData.current_temp}</div>
+                              <div class="text-xs text-slate-600 font-semibold">{weatherData.condition}</div>
+                            </div>
+                            <span class={`px-3 py-1 rounded-full text-xs font-black uppercase ${weatherData.alert_level === 'YELLOW' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800'}`}>
+                              {weatherData.alert_level} ALERT
+                            </span>
+                          </div>
+
+                          <div class="text-xs space-y-2">
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                              <span class="font-bold text-slate-800 block mb-1">🌧️ 7-Day Rainfall Forecast:</span>
+                              <p class="text-slate-600 leading-relaxed">{weatherData.rainfall_forecast_next_7_days}</p>
+                            </div>
+                            <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                              <span class="font-bold text-emerald-900 block mb-1">💡 IMD Actionable Advice:</span>
+                              <p class="text-emerald-800 leading-relaxed">{weatherData.actionable_advice}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-[10px] text-slate-400">
+                      Grounded in IMD Agro-Met Advisory Bulletins (Chennai Regional Centre).
+                    </div>
+                  </div>
+
+                  {/* SCHEME ELIGIBILITY */}
+                  <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div>
+                      <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center space-x-2">
+                          <span class="text-xl">📜</span>
+                          <h3 class="text-lg font-bold text-slate-900">{t.schemeTitle}</h3>
+                        </div>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                          {schemesData?.eligible_count || 5} Schemes Active
+                        </span>
+                      </div>
+
+                      {schemesData && (
+                        <div class="space-y-3 max-h-96 overflow-y-auto pr-1">
+                          {schemesData.schemes.map((s, idx) => (
+                            <div key={idx} class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl hover:border-emerald-300 transition">
+                              <div class="flex justify-between items-start mb-1.5">
+                                <div>
+                                  <span class="font-bold text-slate-900 text-xs block">{s.name} ({s.code})</span>
+                                  <span class="text-[10px] text-emerald-700 font-semibold">{s.category}</span>
+                                </div>
+                                <div class="flex items-center space-x-1.5">
+                                  <button
+                                    onClick={() => {
+                                      const text = lang === 'ta'
+                                        ? `அரசு திட்டம்: ${s.name}. பயன்: ${s.benefit}. தகுதி விவரம்: ${s.why_eligible}. எடுத்துச்செல்ல வேண்டிய ஆவணங்கள்: ${s.documents_needed.join(', ')}.`
+                                        : `Scheme: ${s.name}. Benefits: ${s.benefit}. Why eligible: ${s.why_eligible}. Documents needed: ${s.documents_needed.join(', ')}.`;
+                                      speakText(text);
+                                    }}
+                                    class="p-1 rounded bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-800 text-xs font-bold"
+                                    title="Listen Scheme Audio"
+                                  >
+                                    🔊
+                                  </button>
+                                  <span class="px-2 py-0.5 text-[10px] font-black rounded bg-emerald-100 text-emerald-800">
+                                    Eligible
+                                  </span>
+                                </div>
+                              </div>
+                              <p class="text-xs text-slate-600 font-medium mb-2">{s.benefit}</p>
+                              
+                              <div class="text-[11px] bg-white p-2 rounded border border-slate-100 mb-1.5">
+                                <span class="font-bold text-slate-700 block mb-0.5">📂 {t.docChecklist}:</span>
+                                <span class="text-slate-600">{s.documents_needed.join(' • ')}</span>
+                              </div>
+
+                              <div class="flex justify-between items-center text-[10px] text-amber-800 font-semibold">
+                                <span>⏳ Deadline: {s.deadline}</span>
+                                <span class="text-slate-400">Portal: {s.portal}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Nearest Agri Office */}
+                    {schemesData?.nearest_agri_offices && (
+                      <div class="mt-4 pt-3 border-t border-slate-100">
+                        <span class="text-xs font-bold text-slate-700 block mb-2">📍 {t.nearestOffice}:</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                          {schemesData.nearest_agri_offices.slice(0, 2).map((off, i) => (
+                            <div key={i} class="p-2 bg-slate-50 rounded-lg border border-slate-200">
+                              <div class="font-bold text-slate-800">{off.name}</div>
+                              <div class="text-slate-500">{off.address} ({off.distance})</div>
+                              <div class="text-emerald-700 font-semibold">📞 {off.phone}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Trust Feedback Card */}
+                <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-4 border border-emerald-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+                  <div class="text-xs">
+                    <span class="font-bold text-emerald-900 block text-sm">{t.feedbackPrompt}</span>
+                    <span class="text-slate-600">Your ground truth rating helps refine our regional crop yield models.</span>
+                  </div>
+
+                  {!feedbackGiven ? (
+                    <div class="flex space-x-2">
+                      <button
+                        onClick={() => sendFeedback(true)}
+                        class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow"
+                      >
+                        👍 Yes, Accurate
+                      </button>
+                      <button
+                        onClick={() => sendFeedback(false)}
+                        class="px-4 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs border border-slate-300 shadow-sm"
+                      >
+                        👎 Needs Adjustment
+                      </button>
+                    </div>
+                  ) : (
+                    <span class="text-xs font-bold text-emerald-800">✅ {t.feedbackThanks}</span>
+                  )}
+                </div>
+
+              </div>
+            )}
+
+            {/* TAB 2: DISTRICT / GOVTECH DASHBOARD */}
+            {tab === 'district' && (
+              <div class="space-y-8">
+                {/* Overview Header Cards */}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Predicted TN Yield</span>
+                    <div class="text-2xl font-black text-slate-900 mt-1">
+                      {govData?.summary?.predicted_state_yield_lakh_mt || '148.2'} Lakh MT
+                    </div>
+                    <span class="text-[11px] text-emerald-600 font-semibold">38 Districts Samba Crop Model</span>
+                  </div>
+
+                  <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Procurement Budget</span>
+                    <div class="text-2xl font-black text-slate-900 mt-1">
+                      ₹{govData?.summary?.estimated_procurement_budget_cr?.toLocaleString() || '26,450'} Cr
+                    </div>
+                    <span class="text-[11px] text-slate-500 font-semibold">TNCSC / Direct Purchase Centers</span>
+                  </div>
+
+                  <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">State Warehouse Util.</span>
+                    <div class="text-2xl font-black text-amber-600 mt-1">
+                      {govData?.summary?.state_utilization_pct || '78.4'}%
+                    </div>
+                    <span class="text-[11px] text-slate-500 font-semibold">Capacity: {govData?.summary?.state_godown_capacity_lakh_mt || '98.5'} Lakh MT</span>
+                  </div>
+
+                  <div class="bg-white p-5 rounded-2xl border border-rose-200 bg-rose-50/40 shadow-sm">
+                    <span class="text-xs font-bold uppercase tracking-wider text-rose-700">Overflow Risk Badge</span>
+                    <div class="text-2xl font-black text-rose-700 mt-1">
+                      {govData?.summary?.overflow_critical_count || 4} Districts Critical
+                    </div>
+                    <span class="text-[11px] text-rose-600 font-bold">Stock &gt; 85% of Godown Space</span>
+                  </div>
+                </div>
+
+                {/* WHAT-IF SCENARIO SIMULATOR */}
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                  <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-2">
+                    <div>
+                      <h3 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                        <span>🎛️</span>
+                        <span>{t.whatIfTitle}</span>
+                      </h3>
+                      <p class="text-xs text-slate-500 mt-0.5">{t.whatIfDesc}</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800">
+                      Procurement Target: {procureSlider}%
+                    </span>
+                  </div>
+
+                  <div class="mb-6">
+                    <input
+                      type="range"
+                      min="15"
+                      max="60"
+                      value={procureSlider}
+                      onChange={(e) => runSimulation(e.target.value)}
+                      class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                    />
+                    <div class="flex justify-between text-[11px] text-slate-400 font-bold mt-1">
+                      <span>15% (Minimum)</span>
+                      <span>25% (Baseline Target)</span>
+                      <span>40% (Aggressive MSP drive)</span>
+                      <span>60% (Full buffer drive)</span>
+                    </div>
+                  </div>
+
+                  {simResult && (
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                      <div>
+                        <span class="text-slate-500 block">Extra Grain Procured:</span>
+                        <span class="text-base font-black text-slate-900">
+                          {simResult.extra_procurement_metric_tonnes?.toLocaleString()} Tonnes
+                        </span>
+                      </div>
+                      <div>
+                        <span class="text-slate-500 block">Extra Budget Needed:</span>
+                        <span class="text-base font-black text-slate-900">
+                          ₹{simResult.extra_budget_needed_cr?.toLocaleString()} Crores
+                        </span>
+                      </div>
+                      <div>
+                        <span class="text-slate-500 block">Storage Deficit Warning:</span>
+                        <span class="text-base font-black text-rose-700">
+                          {simResult.extra_storage_deficit_tonnes?.toLocaleString()} Tonnes Shortfall
+                        </span>
+                      </div>
+                      <div class="sm:col-span-3 pt-2 border-t border-slate-200 text-emerald-900 font-semibold">
+                        💡 Directive: {simResult.recommendation}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 38 DISTRICTS MAP / GRID VIEW */}
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                  <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
+                    <div>
+                      <h3 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+                        <span>🗺️</span>
+                        <span>{t.govtechTitle}</span>
+                      </h3>
+                      <p class="text-xs text-slate-500 mt-0.5">{t.govtechDesc}</p>
+                    </div>
+
+                    <div class="flex space-x-2">
+                      {['All', 'Cauvery Delta', 'Western Zone', 'Southern Zone', 'Northern Zone'].map((z) => (
+                        <button
+                          key={z}
+                          onClick={() => setSelectedGovZone(z)}
+                          class={`px-3 py-1 rounded-lg text-xs font-bold transition ${selectedGovZone === z ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                        >
+                          {z}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Legend */}
+                  <div class="flex items-center space-x-4 mb-4 text-xs font-semibold text-slate-600">
+                    <span class="flex items-center space-x-1.5">
+                      <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                      <span>Safe (&lt; 70%)</span>
+                    </span>
+                    <span class="flex items-center space-x-1.5">
+                      <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                      <span>Caution (70 - 84%)</span>
+                    </span>
+                    <span class="flex items-center space-x-1.5">
+                      <span class="w-3 h-3 rounded-full bg-rose-500 animate-pulse"></span>
+                      <span>Overflow Alert (&ge; 85%)</span>
+                    </span>
+                  </div>
+
+                  {/* District Cards Grid */}
+                  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {govData?.all_districts
+                      ?.filter(d => selectedGovZone === 'All' || d.zone === selectedGovZone)
+                      ?.map((d) => {
+                        let colorClass = 'border-emerald-300 bg-emerald-50/20';
+                        let pillClass = 'bg-emerald-100 text-emerald-800';
+                        if (d.utilization_pct >= 85) {
+                          colorClass = 'border-rose-300 bg-rose-50/40';
+                          pillClass = 'bg-rose-100 text-rose-800 animate-pulse';
+                        } else if (d.utilization_pct >= 70) {
+                          colorClass = 'border-amber-300 bg-amber-50/30';
+                          pillClass = 'bg-amber-100 text-amber-800';
+                        }
+
+                        return (
+                          <div key={d.district_code} class={`p-4 rounded-xl border ${colorClass} transition hover:shadow-md`}>
+                            <div class="flex justify-between items-start mb-2">
+                              <div>
+                                <h5 class="font-extrabold text-slate-900 text-sm">{d.district_name}</h5>
+                                <span class="text-[10px] text-slate-400 font-semibold">{d.zone}</span>
+                              </div>
+                              <span class={`px-2 py-0.5 rounded text-xs font-black ${pillClass}`}>
+                                {d.utilization_pct}%
+                              </span>
+                            </div>
+
+                            <div class="text-[11px] space-y-1 text-slate-600 mt-2">
+                              <div class="flex justify-between">
+                                <span>Cropped:</span>
+                                <span class="font-semibold text-slate-800">{d.cropped_area_ha?.toLocaleString()} ha</span>
+                              </div>
+                              <div class="flex justify-between">
+                                <span>Yield Est.:</span>
+                                <span class="font-semibold text-slate-800">{d.predicted_yield_mt?.toLocaleString()} MT</span>
+                              </div>
+                              <div class="flex justify-between">
+                                <span>Godown Stock:</span>
+                                <span class="font-bold text-slate-900">{d.current_stock_mt?.toLocaleString()} / {d.godown_capacity_mt?.toLocaleString()} MT</span>
+                              </div>
+                            </div>
+
+                            {d.overflow_risk && (
+                              <div class="mt-2.5 px-2 py-1 bg-rose-100/90 text-rose-800 text-[10px] font-bold rounded flex items-center space-x-1">
+                                <span>⚠️</span>
+                                <span>Overflow risk! Reroute grain.</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: MARKET FORECASTING & ANALYTICS */}
+            {tab === 'forecast' && (
+              <div class="space-y-8">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                  <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-3">
+                    <div>
+                      <h3 class="text-xl font-bold text-slate-900 flex items-center space-x-2">
+                        <span>📈</span>
+                        <span>12-Month Agmarknet Price Forecast (Tamil Nadu)</span>
+                      </h3>
+                      <p class="text-xs text-slate-500 mt-1">
+                        Trained on seasonal Agmarknet arrivals with historical confidence bands and verified accuracy.
+                      </p>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs font-bold text-slate-600">Select Commodity:</span>
+                      <select
+                        value={forecastCrop}
+                        onChange={(e) => setForecastCrop(e.target.value)}
+                        class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold"
+                      >
+                        <option value="Rice">Rice (Samba ADT 37)</option>
+                        <option value="Groundnut">Groundnut (TMV 7)</option>
+                        <option value="Cotton">Cotton (Long Staple)</option>
+                        <option value="Sugarcane">Sugarcane (Co 86032)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Chart Canvas */}
+                  <div class="h-80 w-full mb-6">
+                    <canvas ref={chartRef}></canvas>
+                  </div>
+
+                  {/* Model Performance / Trust Metrics */}
+                  {forecastData?.model_performance && (
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                      <div>
+                        <span class="text-slate-500 block font-medium">Historical Mean Absolute Error (MAE):</span>
+                        <span class="text-sm font-black text-emerald-800">{forecastData.model_performance.historical_mean_absolute_error}</span>
+                      </div>
+                      <div>
+                        <span class="text-slate-500 block font-medium">Overall Model Reliability:</span>
+                        <span class="text-sm font-black text-slate-900">{forecastData.model_performance.model_confidence_score}</span>
+                      </div>
+                      <div>
+                        <span class="text-slate-500 block font-medium">How far off has it been in past years?</span>
+                        <span class="text-xs text-slate-700 font-semibold">{forecastData.model_performance.trust_metric}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          {/* FOOTER */}
+          <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+            <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+              <div>
+                <span class="font-bold text-slate-800">HarvestIQ Prototype</span> — Agriculture & Market Intelligence for Tamil Nadu.
+              </div>
+              <div class="flex space-x-4">
+                <span>Agmarknet Verified</span>
+                <span>IMD Chennai Agro-Met</span>
+                <span>TNAU Agritech Grounded</span>
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

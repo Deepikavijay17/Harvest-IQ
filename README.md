@@ -42,6 +42,12 @@ Then open:
 
 The backend initializes its SQLite database and reloads sample price and dashboard records on startup. The frontend is served by the FastAPI application from `frontend/index.html`.
 
+## Deploy to Render
+
+The repository includes a Render Blueprint in `render.yaml`. In Render, choose **New + → Blueprint**, connect this GitHub repository, and approve creation of the `harvest-iq` web service. Render will install `backend/requirements.txt`, start the FastAPI app, and use `/` for its health check.
+
+The Blueprint uses Render's free plan. Its filesystem is ephemeral, so local SQLite data and submitted feedback are not durable across restarts or redeploys; the app reloads its sample records at startup.
+
 ## API endpoints
 
 The API is mounted at `/api`. Interactive request and response schemas are available at `/docs`.
